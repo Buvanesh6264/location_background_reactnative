@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { SafeAreaView, Button, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { startLocationUpdates, stopLocationUpdates } from './LocationService';
+import LocationViewerScreen from './LocationViewerScreen';
 
-const App = () => {
+const Stack = createNativeStackNavigator();
+
+const HomeScreen = ({ navigation }) => {
   const [isTracking, setIsTracking] = useState(false);
 
   const handleStart = async () => {
@@ -27,7 +32,22 @@ const App = () => {
         onPress={handleStop}
         disabled={!isTracking}
       />
+      <Button
+        title="Show Map"
+        onPress={() => navigation.navigate('Map')}
+      />
     </SafeAreaView>
+  );
+};
+
+const App = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Map" component={LocationViewerScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 

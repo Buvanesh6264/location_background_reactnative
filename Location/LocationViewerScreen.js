@@ -1,25 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, FlatList, Text, StyleSheet, Dimensions, RefreshControl } from 'react-native';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
 
 const LocationViewerScreen = () => {
   const [locations, setLocations] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchLocations = async () => {
+    try {
+      const res = await axios.get('http://192.168.1.17:5000/getlocations');
+      setLocations(res.data);
+      console.log(res.data)
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    axios.get('http://192.168.1.25:5000/locations')
-      .then(res => setLocations(res.data))
-      .catch(err => console.error(err));
+    fetchLocations();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLocations().finally(() => setRefreshing(false));
   }, []);
 
   const generateMapHTML = () => {
-    if (locations.length === 0) return '';
+    if (locations.length === 0) {
+      return `
+        <!DOCTYPE html>
+        <html><body><p>No locations found.</p></body></html>
+      `;
+    }
 
-    const markers = locations.map(loc => `
-      L.marker([${loc.latitude}, ${loc.longitude}])
-        .addTo(map)
-        .bindPopup("Time: ${new Date(loc.timestamp).toLocaleString()}");
-    `).join('');
+    const markers = locations.map(loc => {
+      const time = new Date(loc.timestamp).toLocaleString();
+      return `
+        L.marker([${loc.latitude}, ${loc.longitude}])
+          .addTo(map)
+          .bindPopup("Name: ${loc.name || 'Unknown'}<br>Time: ${time}");
+      `;
+    }).join('');
 
     const center = locations[0];
 
@@ -30,7 +52,8 @@ const LocationViewerScreen = () => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
         <style>
-          #map { height: 100%; width: 100%; }
+          #map { height: 100%; width: 100%; margin:0; padding:0; }
+          body, html { margin:0; padding:0; height:100%; }
         </style>
       </head>
       <body>
@@ -62,11 +85,15 @@ const LocationViewerScreen = () => {
         keyExtractor={(_, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.item}>
+            <Text>Name: {item.user || 'Unknown'}</Text>
             <Text>Lat: {item.latitude}, Lng: {item.longitude}</Text>
             <Text>Time: {new Date(item.timestamp).toLocaleString()}</Text>
           </View>
         )}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );

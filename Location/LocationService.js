@@ -93,7 +93,7 @@ export const startLocationUpdates = async () => {
         console.log('Sending location:', latitude, longitude);
 
         try {
-          await axios.post('http://192.168.1.25:5000/location', {
+          await axios.post('http://192.168.1.17:5000/location', {
             latitude,
             longitude,
           });
